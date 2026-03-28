@@ -228,10 +228,13 @@ with st.sidebar:
     selected_contaminants = st.multiselect(
         "Contaminants",
         options=KEY_CONTAMINANTS,
-        default=["PFOS", "PFOA", "PFHxS"],
+        default=KEY_CONTAMINANTS,
     )
     detected_only = st.toggle("Detected results only", value=False)
     compare_to_pleasanton = st.toggle("Compare selected ZIP to Pleasanton", value=True)
+
+if not selected_contaminants:
+    selected_contaminants = KEY_CONTAMINANTS.copy()
 
 selected_df = filter_for_selection(cleaned_df, selected_zip, selected_systems, selected_contaminants, detected_only)
 comparison_df = selected_df.copy()
@@ -249,6 +252,7 @@ selected_summary_df = build_source_summary(selected_df) if not selected_df.empty
 selected_scored_df = score_sources(selected_df) if not selected_df.empty else scored_df.iloc[0:0].copy()
 selected_profiles_df = source_profile(selected_df) if not selected_df.empty else profiles_df.iloc[0:0].copy()
 selected_latest_df = latest_detected_values(selected_df) if not selected_df.empty else latest_df.iloc[0:0].copy()
+zip_raw_df = filter_for_selection(cleaned_df, selected_zip, selected_systems, KEY_CONTAMINANTS, False)
 
 selected_system_count = len(selected_systems)
 top_source_name = selected_scored_df.iloc[0]["FacilityName"] if not selected_scored_df.empty else "No detected source"
@@ -313,13 +317,24 @@ with tab_overview:
         width="stretch",
         hide_index=True,
     )
+    if selected_scored_df.empty:
+        if zip_raw_df.empty:
+            st.warning(
+                f"No UCMR5 records were found for the current ZIP and system selection. "
+                f"Try another ZIP code or choose additional systems tied to ZIP {selected_zip}."
+            )
+        else:
+            st.info(
+                "This ZIP has UCMR5 records, but nothing matches the current contaminant filter. "
+                "The app reset to the default contaminant set when none were selected."
+            )
     st.plotly_chart(
         max_concentration_chart(
             selected_summary_df,
             selected_contaminants,
             f"Maximum PFAS Concentrations by Source for ZIP {selected_zip}",
         ),
-        width="stretch",
+        config={"responsive": True},
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -338,7 +353,7 @@ with tab_sources:
                 selected_contaminants,
                 f"Source-by-Contaminant Heatmap for ZIP {selected_zip}",
             ),
-            width="stretch",
+            config={"responsive": True},
         )
     with right:
         st.dataframe(
@@ -362,7 +377,7 @@ with tab_trends:
         trend_title += " with Pleasanton benchmark"
     st.plotly_chart(
         trend_chart(comparison_df, selected_contaminants, trend_title, detected_only),
-        width="stretch",
+        config={"responsive": True},
     )
     if selected_zip in TARGET_ZIPS:
         st.write(

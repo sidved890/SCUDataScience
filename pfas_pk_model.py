@@ -3,14 +3,7 @@
 # Project: Forever Chemical Bioaccumulation in the Human Liver
 # Data Sources: City of Pleasanton Water Quality Reports + EPA UCMR5
 # =============================================================================
-
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-
-# =============================================================================
-# SECTION 1: REAL DATA FROM PLEASANTON / EPA UCMR5
+# AL DATA FROM PLEASANTON / EPA UCMR5
 # These values come directly from the City of Pleasanton 2023-2024 water
 # quality reports and the EPA UCMR5 national dataset.
 # Units: ng/L (nanograms per liter) = parts per trillion
