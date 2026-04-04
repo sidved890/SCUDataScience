@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.config import KEY_CONTAMINANTS, TARGET_PWSIDS, TARGET_ZIPS, UGL_TO_NGL
+from src.config import KEY_CONTAMINANTS, UGL_TO_NGL
 
 
 def _normalize_units(series: pd.Series) -> pd.Series:
@@ -10,7 +10,6 @@ def _normalize_units(series: pd.Series) -> pd.Series:
         series.fillna("")
         .str.replace("Â", "", regex=False)
         .str.replace("µ", "u", regex=False)
-        .str.replace("ug/L", "ug/L", regex=False)
         .str.strip()
     )
 
@@ -25,12 +24,10 @@ def clean_ucmr_data(results_df: pd.DataFrame, zip_df: pd.DataFrame) -> pd.DataFr
 
     zip_map = zip_df.rename(columns={"ZIPCODE": "ZIPCode"}).copy()
     zip_map["ZIPCode"] = zip_map["ZIPCode"].astype(str)
+    zip_map = zip_map.loc[:, ["PWSID", "ZIPCode"]].drop_duplicates()
     df = df.merge(zip_map, on="PWSID", how="left")
 
-    df["is_target_zip"] = df["ZIPCode"].isin(TARGET_ZIPS)
-    df["is_target_system"] = df["PWSID"].isin(TARGET_PWSIDS)
     df["is_key_contaminant"] = df["Contaminant"].isin(KEY_CONTAMINANTS)
-
     df["result_ng_L"] = df["AnalyticalResultValue"]
     df["mrl_ng_L"] = df["MRL"]
 
@@ -41,8 +38,6 @@ def clean_ucmr_data(results_df: pd.DataFrame, zip_df: pd.DataFrame) -> pd.DataFr
     return df
 
 
-def pleasanton_subset(df: pd.DataFrame) -> pd.DataFrame:
-    mask = df["PWSID"].isin(TARGET_PWSIDS) | df["is_target_zip"]
-    subset = df.loc[mask].copy()
-    subset = subset.sort_values(["FacilityName", "CollectionDate", "Contaminant"])
-    return subset
+def subset_by_zip(df: pd.DataFrame, zip_code: str) -> pd.DataFrame:
+    subset = df[df["ZIPCode"].eq(zip_code)].copy()
+    return subset.sort_values(["PWSName", "FacilityName", "CollectionDate", "Contaminant"])

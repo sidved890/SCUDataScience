@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.config import KEY_CONTAMINANTS, RISK_LABELS, RISK_WEIGHT_MAP
+from src.config import DEFAULT_UNKNOWN_CONTAMINANT_WEIGHT, RISK_LABELS, RISK_WEIGHT_MAP
 
 
 def score_sources(df: pd.DataFrame) -> pd.DataFrame:
-    focus = df[df["Contaminant"].isin(KEY_CONTAMINANTS)].copy()
+    focus = df.copy()
     scored_rows = []
 
     for keys, group in focus.groupby(["PWSID", "PWSName", "FacilityName", "FacilityWaterType"], dropna=False):
@@ -15,11 +15,10 @@ def score_sources(df: pd.DataFrame) -> pd.DataFrame:
         detected = group[group["detected"]]
 
         for contaminant, sub in group.groupby("Contaminant"):
-            if contaminant not in RISK_WEIGHT_MAP:
-                continue
+            weight = RISK_WEIGHT_MAP.get(contaminant, DEFAULT_UNKNOWN_CONTAMINANT_WEIGHT)
             detections = int(sub["detected"].sum())
             max_value = sub.loc[sub["detected"], "result_ng_L"].max() if detections else 0.0
-            score += detections * RISK_WEIGHT_MAP[contaminant]
+            score += detections * weight
             score += min(float(max_value or 0.0) / 10.0, 8.0)
 
         label = _label_for_score(score)
